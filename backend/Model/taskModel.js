@@ -37,7 +37,7 @@ const deleteTask = async (id) => {
       database.query(query, [id], (error, result) => {
         if (error) {
             console.error('Database error', error)
-            reject(err)
+            reject(error)
           } else {
            console.log('Delete result', result)
               resolve(result);
@@ -64,6 +64,5 @@ const deleteTask = async (id) => {
   
 
 export default {getTasks, createTask, deleteTask, updateTask};
-
 
 

@@ -12,11 +12,11 @@ const getTasks = async (req, res) => {
 const createTask = async (req, res) => {
     console.log('kaldt')
     try {
-        const { task, date} = req.body;
-        console.log(task, date);
+        const { title, date} = req.body;
+        console.log(title, date);
         //task id is not declared
-        const taskId = await taskModel.createTask(task, date);
-        res.status(201).json({ message: 'mission complete', taskId })
+        const taskId = await taskModel.createTask(title, date);
+        res.status(201).json({ insertId: taskId })
     } catch (error) {
         res.status(500).json({ error: 'something went wrong' });
     }

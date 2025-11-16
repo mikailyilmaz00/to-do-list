@@ -34,44 +34,50 @@ const CalendarComponent = () => {
     }
   
   fetchTasks();
-}, [tasks, selectedDate])
+}, [])
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
 
-  const handleAddTask = async (task, date) => {
-    console.log("kaldt", task, selectedDate); // Logs task and date for debugging
-    if (task) {
-      // Create new task with the correct date format (ISO string)
-      const newTask = { title: task, date: selectedDate.toISOString(), completed: false };
-      setTasks([...tasks, newTask]);
-  
-      try {
-        const response = await fetch('http://localhost:3000/api/createTask', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            task,
-            date 
-          })
-        });
-  
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Task created successfully:", data);
-        } else {
-          console.error("Failed to create task:", response.statusText);
-        }
-      } catch (error) {
-        console.log('Error', error);
-      }
-    } else {
-      console.error("Error: Task title is missing!");
+  const handleAddTask = async (task) => {
+  if (!task) return console.error("Task title is missing!");
+
+  try {
+    const response = await fetch('http://localhost:3000/api/createTask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: task,
+        date: selectedDate.toISOString(),
+        completed: false
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to create task");
+      return;
     }
-  };
+
+    const data = await response.json();  // <= contains insertId
+    console.log("Data form backend", data)
+    
+
+    const newTask = {
+      id: data.insertId,
+      task: task,
+      title: task,
+      date: new Date(selectedDate),
+      completed: false,
+    };
+
+    setTasks(prev => [...prev, newTask]);
+
+  } catch (err) {
+    console.error("Error", err);
+  }
+};
+
   
 
   const handleEditClick = (task) => {
@@ -81,7 +87,7 @@ const CalendarComponent = () => {
 
   const handleUpdateTask = async () => {
     
-    // Nedenstående kode forsikrer, at task bliver opdateret med den nye titel, mens andre opgaver forbliver uændrede
+    // nedenstående kode forsikrer, at task bliver opdateret med den nye titel, mens andre opgaver forbliver uændrede
     const updatedTasks = tasks.map(task =>
       task.id === editingTaskId ? { ...task, task: editedTaskTitle, completed: task.completed === true } : task
     );
@@ -146,10 +152,10 @@ const CalendarComponent = () => {
     updatedTasks[index] = updatedTask
     setTasks(updatedTasks)
 
-    console.log("id is ", updatedTasks.id)
+    console.log("id is ", updatedTask.id)
 
     try {
-      const response = await fetch(`http://localhost:3000/api/updateTask/${taskId}`, {
+      const response = await fetch(`http://localhost:3000/api/updateTask/${updatedTask.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -177,8 +183,6 @@ const CalendarComponent = () => {
   //   );
   // };
 
-  
-
   const deleteTodo = async (taskObj) => {
     console.log('delete task with id', taskObj)
     console.log('with id', taskObj.id)
@@ -199,6 +203,19 @@ const CalendarComponent = () => {
     if (!response.ok) {
       console.error('Failed to delete the task')
       setTasks((prevTasks) => [...prevTasks, taskObj])
+    } else {
+      // refreshes tasks from backend to ensure UI sync with DB
+      const refreshResponse = await fetch('http://localhost:3000/api/getTasks')
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json()
+        const taskWithDate = data.map(t => ({
+          ...t,
+          task: t.title,
+          date: t.date ? new Date(t.date) : new Date(),
+          completed: t.completed ?? false,
+        }))
+        setTasks(taskWithDate)
+      }
     }
     } catch (error) {
       console.error('Error deleting task:', error) 
@@ -206,6 +223,42 @@ const CalendarComponent = () => {
     }
 
   };
+
+
+  // const deleteTodo = async (taskObj) => {
+  //   console.log('delete task with id', taskObj)
+  //   console.log('with id', taskObj.id)
+
+  //   if (!taskObj || !taskObj.id) {
+  //   console.error("Error: Task ID is missing!");
+  //   return;
+  //   }
+
+  //   // removes from UI immediately
+  //   setTasks(prev => prev.filter((t) => t.id !== taskObj.id));
+
+  //   try {
+  //   const response = await fetch(`http://localhost:3000/api/deleteTask`, {
+  //     method: 'DELETE',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify({ id: taskObj.id }),
+  //   });
+
+  //   if (!response.ok) {
+  //     console.error("Failed to delete task from DB");
+
+  //     // rolls back if backend fails
+  //     setTasks(prev => [...prev, taskObj]);
+  //   }
+
+  //   } catch (error) {
+  //   console.error('Error deleting task:', error);
+
+  //   // rolls back if network error
+  //   setTasks(prev => [...prev, taskObj]);
+  //   }
+  // }
+
 
   
   
